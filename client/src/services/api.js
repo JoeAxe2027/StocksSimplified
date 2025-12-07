@@ -1,14 +1,8 @@
 // client/src/services/api.js
-import axios from "axios";
+// Single source of truth for backend base URL.
+const API_BASE_URL = "http://localhost:5001/api";
 
-// Base URL for the backend API
-const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
+console.log("API base URL:", API_BASE_URL);
 
-const api = axios.create({
-  baseURL,
-  
-});
-
-console.log("API base URL:", baseURL);
-
-export default api;
+export { API_BASE_URL };
+export default API_BASE_URL;

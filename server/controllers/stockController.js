@@ -1,84 +1,149 @@
+// server/controllers/stockController.js
 const SavedStock = require("../models/SavedStock");
 
-exports.getWatchlist = async (req, res) => {
+// --- Watchlist: GET /api/stocks/watchlist?userId=demo ---
+async function getWatchlist(req, res) {
+  const { userId } = req.query;
+
+  if (!userId) {
+    return res
+      .status(400)
+      .json({ error: "userId query parameter is required" });
+  }
+
   try {
-    const userId = req.query.userId || "demo"; 
-    const stocks = await SavedStock.find({ userId }).sort({ createdAt: -1 });
-    res.json(stocks);
+    const items = await SavedStock.find({ userId }).sort({ createdAt: -1 });
+    return res.json(items);
   } catch (err) {
     console.error("Error fetching watchlist:", err);
-    res.status(500).json({ message: "Server error fetching watchlist" });
+    return res.status(500).json({ error: "Failed to fetch watchlist" });
   }
-};
+}
 
-// POST /api/stocks/watchlist
-// body: { userId, symbol, companyName, notes }
-exports.addStock = async (req, res) => {
+// --- Watchlist: POST /api/stocks/watchlist ---
+async function addToWatchlist(req, res) {
+  const { userId, symbol, companyName, notes } = req.body;
+
+  if (!userId || !symbol || !companyName) {
+    return res
+      .status(400)
+      .json({ error: "userId, symbol and companyName are required" });
+  }
+
   try {
-    const { userId = "demo", symbol, companyName, notes } = req.body;
-
-    if (!symbol) {
-      return res.status(400).json({ message: "Symbol is required" });
-    }
-
-    const stock = await SavedStock.create({
+    const doc = await SavedStock.create({
       userId,
       symbol,
       companyName,
-      notes
+      notes: notes || "",
     });
 
-    res.status(201).json(stock);
+    return res.status(201).json(doc);
   } catch (err) {
-    console.error("Error adding stock:", err);
-    if (err.code === 11000) {
-      return res
-        .status(400)
-        .json({ message: "Stock is already in the watchlist for this user" });
-    }
-    res.status(500).json({ message: "Server error adding stock" });
+    console.error("Error saving watchlist item:", err);
+    return res.status(500).json({ error: "Failed to save watchlist item" });
   }
-};
+}
 
-// PUT /api/stocks/watchlist/:id
-// body: { notes?, companyName? }
-exports.updateStock = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = {};
+// --- Watchlist: DELETE /api/stocks/watchlist/:id ---
+async function deleteWatchlistItem(req, res) {
+  const { id } = req.params;
 
-    if (req.body.notes !== undefined) updates.notes = req.body.notes;
-    if (req.body.companyName !== undefined)
-      updates.companyName = req.body.companyName;
-
-    const updated = await SavedStock.findByIdAndUpdate(id, updates, {
-      new: true
-    });
-
-    if (!updated) {
-      return res.status(404).json({ message: "Saved stock not found" });
-    }
-
-    res.json(updated);
-  } catch (err) {
-    console.error("Error updating stock:", err);
-    res.status(500).json({ message: "Server error updating stock" });
+  if (!id) {
+    return res.status(400).json({ error: "Watchlist item id is required" });
   }
-};
 
-// DELETE /api/stocks/watchlist/:id
-exports.deleteStock = async (req, res) => {
   try {
-    const { id } = req.params;
     const deleted = await SavedStock.findByIdAndDelete(id);
 
     if (!deleted) {
-      return res.status(404).json({ message: "Saved stock not found" });
+      return res.status(404).json({ error: "Watchlist item not found" });
     }
 
-    res.json({ message: "Stock removed from watchlist" });
+    return res.json({
+      message: "Watchlist item deleted",
+      item: deleted,
+    });
   } catch (err) {
-    console.error("Error deleting stock:", err);
-    res.status(500).json({ message: "Server error deleting stock" });
+    console.error("Error deleting watchlist item:", err);
+    return res.status(500).json({ error: "Failed to delete watchlist item" });
   }
+}
+
+// ---------- Fake stock data for charts/details ----------
+
+function buildMockHistory(symbol, days) {
+  const history = [];
+  const now = new Date();
+
+  const base =
+    100 +
+    (symbol.charCodeAt(0) +
+      (symbol.charCodeAt(1) || 0) +
+      (symbol.charCodeAt(2) || 0)) %
+      40;
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+
+    const offset = (i % 5) * 1.5;
+    const close = base + offset;
+
+    history.push({
+      date: d.toISOString().slice(0, 10),
+      close,
+    });
+  }
+
+  return history;
+}
+
+// GET /api/stocks/data?symbol=AAPL&range=1M
+function getStockData(req, res) {
+  const symbolRaw = req.query.symbol || "AAPL";
+  const range = req.query.range || "1M";
+  const symbol = symbolRaw.toUpperCase();
+
+  let days;
+  switch (range) {
+    case "1D":
+      days = 1;
+      break;
+    case "1W":
+      days = 7;
+      break;
+    case "3M":
+      days = 90;
+      break;
+    case "1M":
+    default:
+      days = 30;
+      break;
+  }
+
+  const history = buildMockHistory(symbol, days);
+  const closes = history.map((p) => p.close);
+  const open = closes[0];
+  const price = closes[closes.length - 1];
+  const high = Math.max(...closes);
+  const low = Math.min(...closes);
+  const changePercent = ((price - open) / open) * 100;
+
+  return res.json({
+    symbol,
+    price,
+    open,
+    high,
+    low,
+    changePercent,
+    history,
+  });
+}
+
+module.exports = {
+  getWatchlist,
+  addToWatchlist,
+  deleteWatchlistItem, // 👈 make sure this is exported
+  getStockData,
 };
