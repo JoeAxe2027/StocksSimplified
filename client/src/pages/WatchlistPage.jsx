@@ -1,4 +1,3 @@
-// client/src/pages/WatchlistPage.jsx
 import { useEffect, useState } from "react";
 import {
   fetchWatchlist,
@@ -42,7 +41,6 @@ function WatchlistPage() {
 
     try {
       const created = await addToWatchlist(form, DEMO_USER);
-      // API returns the created document, so append it
       setItems((prev) => [...prev, created]);
       setForm({ symbol: "", companyName: "", notes: "" });
     } catch (err) {
@@ -58,8 +56,6 @@ function WatchlistPage() {
       console.error("Failed to delete watchlist item", err);
     }
   }
-
-  // (Optional) we could add editing of notes later using updateWatchlistItem()
 
   return (
     <main style={{ maxWidth: "960px", margin: "0 auto", padding: "2rem" }}>
