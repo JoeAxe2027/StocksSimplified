@@ -1,7 +1,9 @@
 // server/controllers/stockController.js
 const SavedStock = require("../models/SavedStock");
 
-// --- Watchlist: GET /api/stocks/watchlist?userId=demo ---
+// ---------------- WATCHLIST (MongoDB) ----------------
+
+// GET /api/stocks/watchlist?userId=demo
 async function getWatchlist(req, res) {
   const { userId } = req.query;
 
@@ -20,14 +22,14 @@ async function getWatchlist(req, res) {
   }
 }
 
-// --- Watchlist: POST /api/stocks/watchlist ---
+// POST /api/stocks/watchlist
 async function addToWatchlist(req, res) {
   const { userId, symbol, companyName, notes } = req.body;
 
   if (!userId || !symbol || !companyName) {
-    return res
-      .status(400)
-      .json({ error: "userId, symbol and companyName are required" });
+    return res.status(400).json({
+      error: "userId, symbol and companyName are required",
+    });
   }
 
   try {
@@ -45,105 +47,145 @@ async function addToWatchlist(req, res) {
   }
 }
 
-// --- Watchlist: DELETE /api/stocks/watchlist/:id ---
+// DELETE /api/stocks/watchlist/:id
 async function deleteWatchlistItem(req, res) {
   const { id } = req.params;
 
   if (!id) {
-    return res.status(400).json({ error: "Watchlist item id is required" });
+    return res
+      .status(400)
+      .json({ error: "Watchlist item id (params.id) is required" });
   }
 
   try {
     const deleted = await SavedStock.findByIdAndDelete(id);
-
     if (!deleted) {
       return res.status(404).json({ error: "Watchlist item not found" });
     }
 
-    return res.json({
-      message: "Watchlist item deleted",
-      item: deleted,
-    });
+    return res.json({ success: true });
   } catch (err) {
     console.error("Error deleting watchlist item:", err);
     return res.status(500).json({ error: "Failed to delete watchlist item" });
   }
 }
 
-// ---------- Fake stock data for charts/details ----------
+// ---------------- STOCK DATA (Alpha Vantage) ----------------
 
-function buildMockHistory(symbol, days) {
-  const history = [];
-  const now = new Date();
-
-  const base =
-    100 +
-    (symbol.charCodeAt(0) +
-      (symbol.charCodeAt(1) || 0) +
-      (symbol.charCodeAt(2) || 0)) %
-      40;
-
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(now.getDate() - i);
-
-    const offset = (i % 5) * 1.5;
-    const close = base + offset;
-
-    history.push({
-      date: d.toISOString().slice(0, 10),
-      close,
-    });
+// Helper: how many trading days for each range
+function daysForRange(range) {
+  switch (range) {
+    case "1D":
+      return 1;
+    case "1W":
+      return 7;      // about 1 week
+    case "3M":
+      return 66;     // ~3 months of trading days
+    case "1M":
+    default:
+      return 22;     // ~1 month of trading days
   }
-
-  return history;
 }
 
 // GET /api/stocks/data?symbol=AAPL&range=1M
-function getStockData(req, res) {
-  const symbolRaw = req.query.symbol || "AAPL";
+async function getStockData(req, res) {
+  const symbolRaw = req.query.symbol;
   const range = req.query.range || "1M";
-  const symbol = symbolRaw.toUpperCase();
 
-  let days;
-  switch (range) {
-    case "1D":
-      days = 1;
-      break;
-    case "1W":
-      days = 7;
-      break;
-    case "3M":
-      days = 90;
-      break;
-    case "1M":
-    default:
-      days = 30;
-      break;
+  if (!symbolRaw) {
+    return res
+      .status(400)
+      .json({ error: "symbol query parameter is required" });
   }
 
-  const history = buildMockHistory(symbol, days);
-  const closes = history.map((p) => p.close);
-  const open = closes[0];
-  const price = closes[closes.length - 1];
-  const high = Math.max(...closes);
-  const low = Math.min(...closes);
-  const changePercent = ((price - open) / open) * 100;
+  const symbol = symbolRaw.toUpperCase();
+  const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
-  return res.json({
-    symbol,
-    price,
-    open,
-    high,
-    low,
-    changePercent,
-    history,
-  });
+  if (!apiKey) {
+    console.error("ALPHA_VANTAGE_API_KEY is not set in .env");
+    return res.status(500).json({ error: "Stock API key not configured" });
+  }
+
+  try {
+    // Use a FREE endpoint: TIME_SERIES_DAILY
+    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${encodeURIComponent(
+      symbol
+    )}&outputsize=compact&apikey=${apiKey}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Alpha Vantage HTTP ${response.status}`);
+    }
+
+    const json = await response.json();
+
+    // Handle Alpha Vantage error / info messages
+    if (json["Error Message"] || json["Information"] || json["Note"]) {
+      console.error("Unexpected Alpha Vantage response:", json);
+      return res
+        .status(502)
+        .json({ error: "Upstream stock provider returned an error" });
+    }
+
+    const series = json["Time Series (Daily)"];
+    if (!series) {
+      console.error("Unexpected Alpha Vantage response shape:", json);
+      return res
+        .status(502)
+        .json({ error: "No time series data returned from provider" });
+    }
+
+    // Sort dates ascending and slice to the range we want
+    const allDatesAsc = Object.keys(series).sort();
+    const maxDays = daysForRange(range);
+    const selectedDates = allDatesAsc.slice(-maxDays);
+
+    const history = selectedDates.map((date) => {
+      const bar = series[date];
+      return {
+        date,
+        open: parseFloat(bar["1. open"]),
+        high: parseFloat(bar["2. high"]),
+        low: parseFloat(bar["3. low"]),
+        close: parseFloat(bar["4. close"]),
+      };
+    });
+
+    if (history.length === 0) {
+      return res
+        .status(502)
+        .json({ error: "No usable stock data returned from provider" });
+    }
+
+    const opens = history.map((h) => h.open);
+    const highs = history.map((h) => h.high);
+    const lows = history.map((h) => h.low);
+    const closes = history.map((h) => h.close);
+
+    const open = opens[0];
+    const price = closes[closes.length - 1];
+    const high = Math.max(...highs);
+    const low = Math.min(...lows);
+    const changePercent = ((price - open) / open) * 100;
+
+    return res.json({
+      symbol,
+      price,
+      open,
+      high,
+      low,
+      changePercent,
+      history, // React chart uses history[].close
+    });
+  } catch (err) {
+    console.error("Error fetching stock data from Alpha Vantage:", err);
+    return res.status(500).json({ error: "Failed to load stock data" });
+  }
 }
 
 module.exports = {
   getWatchlist,
   addToWatchlist,
-  deleteWatchlistItem, // 👈 make sure this is exported
+  deleteWatchlistItem,
   getStockData,
 };
