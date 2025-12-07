@@ -7,7 +7,8 @@ const connectDB = require("./config/db");
 const stockRoutes = require("./routes/stockRoutes");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+// Default to 5001 so it lines up with the client config (API_BASE_URL)
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());

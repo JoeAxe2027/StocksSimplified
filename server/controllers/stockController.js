@@ -42,6 +42,13 @@ async function addToWatchlist(req, res) {
 
     return res.status(201).json(doc);
   } catch (err) {
+    if (err && err.code === 11000) {
+      // Unique index on userId+symbol
+      return res
+        .status(409)
+        .json({ error: "This symbol is already saved for this user" });
+    }
+
     console.error("Error saving watchlist item:", err);
     return res.status(500).json({ error: "Failed to save watchlist item" });
   }
@@ -65,6 +72,10 @@ async function deleteWatchlistItem(req, res) {
 
     return res.json({ success: true });
   } catch (err) {
+    if (err?.name === "CastError") {
+      return res.status(400).json({ error: "Invalid watchlist item id" });
+    }
+
     console.error("Error deleting watchlist item:", err);
     return res.status(500).json({ error: "Failed to delete watchlist item" });
   }
