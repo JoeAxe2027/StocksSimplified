@@ -1,23 +1,42 @@
 // client/src/App.jsx
+import { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-import { useState } from "react";
+import { Navbar } from "./components/Navbar.jsx";
+import Home from "./pages/Home.jsx";
+import WatchlistPage from "./pages/WatchlistPage.jsx";
+import { fetchWatchlist } from "./services/watchlistService.js";
 
 function App() {
-  const [count, setCount] = useState(0);
+  const [watchlist, setWatchlist] = useState([]);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await fetchWatchlist();
+        console.log("Watchlist from API:", data);
+        setWatchlist(data);
+      } catch (err) {
+        console.error("Error loading watchlist in App:", err);
+      }
+    }
+
+    load();
+  }, []);
 
   return (
-    <>
-      <h1>StocksSimplified</h1>
-      <div className="card">
-        <button onClick={() => setCount((c) => c + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Temporary test UI  we will plug in the real Navbar/pages/routes here
-          later.
-        </p>
-      </div>
-    </>
+    <Router>
+      <Navbar />
+      <main style={{ padding: "2rem" }}>
+        <Routes>
+          <Route
+            path="/"
+            element={<Home initialWatchlist={watchlist} />}
+          />
+          <Route path="/watchlist" element={<WatchlistPage />} />
+        </Routes>
+      </main>
+    </Router>
   );
 }
 
