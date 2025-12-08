@@ -63,7 +63,6 @@ export default function Navbar() {
               {theme === "dark" ? "🌙" : "☀️"}
             </span>
           </button>
-          <button className="sign-in-btn">Sign In(TBD)</button>
         </div>
       </div>
     </nav>

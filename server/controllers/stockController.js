@@ -92,17 +92,21 @@ async function deleteWatchlistItem(req, res) {
 // ---------------- STOCK DATA (Alpha Vantage) ----------------
 
 // Helper: how many trading days for each range
+// Note: compact mode only returns ~100 days, so all ranges cap at 100
 function daysForRange(range) {
   switch (range) {
     case "1D":
       return 1;
     case "1W":
-      return 7;      // about 1 week
+      return 7;
+    case "1M":
+      return 22;     // ~1 month of trading days
     case "3M":
       return 66;     // ~3 months of trading days
-    case "1M":
+    case "6M":
+      return 100;    // Compact mode max
     default:
-      return 22;     // ~1 month of trading days
+      return 22;
   }
 }
 
@@ -135,12 +139,13 @@ async function getStockData(req, res) {
   }
 
   try {
+    // Use compact output for faster responses (returns ~100 days)
     // Use a FREE endpoint: TIME_SERIES_DAILY
     const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${encodeURIComponent(
       symbol
     )}&outputsize=compact&apikey=${apiKey}`;
 
-    console.log(`Fetching from Alpha Vantage: ${symbol}`);
+    console.log(`Fetching from Alpha Vantage: ${symbol} (compact)`);
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Alpha Vantage HTTP ${response.status}`);
@@ -316,7 +321,7 @@ async function batchGetStockData(req, res) {
       if (!apiKey) throw new Error("API key not configured");
 
       const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${encodeURIComponent(symbol)}&outputsize=compact&apikey=${apiKey}`;
-      console.log(`Batch: Fetching ${symbol} from API`);
+      console.log(`Batch: Fetching ${symbol} from API (compact)`);
 
       const response = await fetch(url);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);

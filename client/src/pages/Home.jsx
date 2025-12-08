@@ -65,6 +65,21 @@ function Home({ watchlist = [] }) {
             onChangeRange={handleRangeChange}
           />
         </div>
+
+        <div className="quick-stocks">
+          <label>Quick Select</label>
+          <div className="quick-buttons">
+            {["AAPL", "MSFT", "GOOGL", "TSLA", "NVDA", "AMZN"].map((sym) => (
+              <button
+                key={sym}
+                className={`quick-btn ${selectedSymbol === sym ? "active" : ""}`}
+                onClick={() => handleSearch(sym)}
+              >
+                {sym}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {loading && <div className="loading-message">📊 Loading stock data...</div>}
@@ -81,6 +96,7 @@ function Home({ watchlist = [] }) {
       {!loading && !error && stockData && (
         <>
           <div className="chart-section">
+            <h2 style={{ marginBottom: "1rem", marginTop: 0 }}>{selectedSymbol} Price Chart</h2>
             <div className="chart-container">
               <StockChart history={stockData.history} />
             </div>
@@ -91,13 +107,6 @@ function Home({ watchlist = [] }) {
           </div>
         </>
       )}
-
-      <div className="debug-section">
-        <h2>Watchlist Data</h2>
-        <div className="debug-content">
-          <pre>{JSON.stringify(watchlist, null, 2)}</pre>
-        </div>
-      </div>
     </div>
   );
 }
