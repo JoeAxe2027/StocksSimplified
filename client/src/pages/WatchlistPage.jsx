@@ -1,121 +1,119 @@
 import { useEffect, useState } from "react";
-import {
-  fetchWatchlist,
-  addToWatchlist,
-  updateWatchlistItem,
-  removeFromWatchlist,
-} from "../services/watchlistService";
+import { fetchWatchlist, removeFromWatchlist } from "../services/watchlistService";
+import { API_BASE_URL } from "../services/api";
 
 const DEMO_USER = "demo";
 
 function WatchlistPage() {
   const [items, setItems] = useState([]);
-  const [form, setForm] = useState({
-    symbol: "",
-    companyName: "",
-    notes: "",
-  });
+  const [loading, setLoading] = useState(true);
+  const [dataMap, setDataMap] = useState({}); // symbol -> stock data
 
   useEffect(() => {
     loadWatchlist();
   }, []);
 
   async function loadWatchlist() {
+    setLoading(true);
     try {
-      const data = await fetchWatchlist(DEMO_USER);
-      console.log("Watchlist from API (WatchlistPage):", data);
-      setItems(data);
+      const list = await fetchWatchlist(DEMO_USER);
+      setItems(list || []);
+
+      if (!list || list.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      // Use batch endpoint to fetch all symbols at once
+      const symbols = list.map((it) => it.symbol.toUpperCase()).join(",");
+      const res = await fetch(`${API_BASE_URL}/stocks/batch?symbols=${encodeURIComponent(symbols)}&range=1M`);
+      const json = await res.json();
+      setDataMap(json.data || {});
     } catch (err) {
       console.error("Failed to load watchlist", err);
+    } finally {
+      setLoading(false);
     }
   }
 
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  }
-
-  async function handleAdd(e) {
-    e.preventDefault();
-    if (!form.symbol) return;
-
-    try {
-      const created = await addToWatchlist(form, DEMO_USER);
-      setItems((prev) => [...prev, created]);
-      setForm({ symbol: "", companyName: "", notes: "" });
-    } catch (err) {
-      console.error("Failed to add stock to watchlist", err);
-    }
-  }
-
-  async function handleDelete(id) {
+  async function handleDelete(id, symbol) {
     try {
       await removeFromWatchlist(id, DEMO_USER);
       setItems((prev) => prev.filter((item) => item._id !== id));
+      setDataMap((prev) => {
+        const next = { ...prev };
+        delete next[symbol];
+        return next;
+      });
     } catch (err) {
       console.error("Failed to delete watchlist item", err);
     }
   }
 
+  const formatPrice = (p) => (typeof p === "number" ? p.toFixed(2) : "—");
+
   return (
-    <main style={{ maxWidth: "960px", margin: "0 auto", padding: "2rem" }}>
-      <h1>StocksSimplified</h1>
-      <h2>Your Watchlist</h2>
+    <main className="page-container">
+      <div className="page-header">
+        <h1>Your Watchlist</h1>
+        <p className="muted">Quickly scan latest prices and key stats for your saved stocks.</p>
+      </div>
 
-      <form
-        onSubmit={handleAdd}
-        style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}
-      >
-        <input
-          name="symbol"
-          placeholder="Symbol (e.g. AAPL)"
-          value={form.symbol}
-          onChange={handleChange}
-        />
-        <input
-          name="companyName"
-          placeholder="Company name"
-          value={form.companyName}
-          onChange={handleChange}
-        />
-        <input
-          name="notes"
-          placeholder="Notes"
-          value={form.notes}
-          onChange={handleChange}
-        />
-        <button type="submit">Add</button>
-      </form>
+      {loading && <div className="loading-message">Loading watchlist…</div>}
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign: "left" }}>Symbol</th>
-            <th style={{ textAlign: "left" }}>Company</th>
-            <th style={{ textAlign: "left" }}>Notes</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <tr key={item._id}>
-              <td>{item.symbol}</td>
-              <td>{item.companyName}</td>
-              <td>{item.notes}</td>
-              <td>
-                <button type="button" onClick={() => handleDelete(item._id)}>
+      {!loading && items.length === 0 && (
+        <div className="empty-message">Your watchlist is empty. Add stocks from the Home page.</div>
+      )}
+
+      <div className="watchlist-grid">
+        {items.map((item) => {
+          const s = item.symbol.toUpperCase();
+          const d = dataMap[s];
+          const price = d?.price ?? null;
+          const change = d?.changePercent ?? null;
+          const high = d?.high ?? null;
+          const low = d?.low ?? null;
+          const open = d?.open ?? null;
+
+          return (
+            <div className="watch-card" key={item._id}>
+              <div className="watch-card-header">
+                <div>
+                  <div className="symbol">{s}</div>
+                  <div className="company">{item.companyName || "—"}</div>
+                </div>
+                <div className="price-block">
+                  <div className="price">${formatPrice(price)}</div>
+                  <div className={`change ${change >= 0 ? "positive" : "negative"}`}>
+                    {typeof change === "number" ? `${change.toFixed(2)}%` : "—"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="watch-card-stats">
+                <div className="stat">
+                  <div className="label">Open</div>
+                  <div className="value">{formatPrice(open)}</div>
+                </div>
+                <div className="stat">
+                  <div className="label">High</div>
+                  <div className="value">{formatPrice(high)}</div>
+                </div>
+                <div className="stat">
+                  <div className="label">Low</div>
+                  <div className="value">{formatPrice(low)}</div>
+                </div>
+              </div>
+
+              <div className="watch-card-actions">
+                <button className="btn btn-secondary" onClick={() => handleDelete(item._id, s)}>
                   Remove
                 </button>
-              </td>
-            </tr>
-          ))}
-          {items.length === 0 && (
-            <tr>
-              <td colSpan="4">No items yet – add one above.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </main>
   );
 }

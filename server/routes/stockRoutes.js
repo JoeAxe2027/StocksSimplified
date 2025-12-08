@@ -7,6 +7,8 @@ const {
   addToWatchlist,
   deleteWatchlistItem,
   getStockData,
+  searchSymbols,
+  batchGetStockData,
 } = require("../controllers/stockController");
 
 // MongoDB watchlist routes
@@ -16,5 +18,9 @@ router.delete("/watchlist/:id", deleteWatchlistItem);
 
 // Stock data route (Alpha Vantage)
 router.get("/data", getStockData);
+// Symbol search proxy (SYMBOL_SEARCH)
+router.get("/search", searchSymbols);
+// Batch stock data endpoint (minimizes API calls)
+router.get("/batch", batchGetStockData);
 
 module.exports = router;
