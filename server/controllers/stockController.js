@@ -1,6 +1,10 @@
 // server/controllers/stockController.js
 const SavedStock = require("../models/SavedStock");
 
+// Simple in-memory cache for symbol search results to reduce Alpha Vantage calls
+const searchCache = new Map(); // key -> { expires: number, data: [...] }
+const SEARCH_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
 // ---------------- WATCHLIST (MongoDB) ----------------
 
 // GET /api/stocks/watchlist?userId=demo
@@ -194,9 +198,70 @@ async function getStockData(req, res) {
   }
 }
 
+// GET /api/stocks/search?keywords=INT
+async function searchSymbols(req, res) {
+  const keywords = (req.query.keywords || req.query.q || "").trim();
+  if (!keywords) {
+    return res.status(400).json({ error: "keywords query parameter is required" });
+  }
+
+  const cacheKey = keywords.toLowerCase();
+  const cached = searchCache.get(cacheKey);
+  if (cached && cached.expires > Date.now()) {
+    return res.json({ matches: cached.data });
+  }
+
+  const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+  if (!apiKey) {
+    console.error("ALPHA_VANTAGE_API_KEY is not set in .env");
+    return res.status(500).json({ error: "Stock API key not configured" });
+  }
+
+  try {
+    const url = `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${encodeURIComponent(
+      keywords
+    )}&apikey=${apiKey}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Alpha Vantage HTTP ${response.status}`);
+    }
+
+    const json = await response.json();
+
+    // Handle rate-limit / info responses gracefully
+    if (json["Note"] || json["Information"]) {
+      console.warn("Alpha Vantage search returned info/note:", json);
+      // Return cached if available (even expired) or an empty list
+      if (cached && cached.data) {
+        return res.json({ matches: cached.data });
+      }
+      return res.json({ matches: [] });
+    }
+
+    const best = json["bestMatches"] || [];
+    const matches = best.map((m) => ({
+      symbol: m["1. symbol"] || m.symbol || "",
+      name: m["2. name"] || m.name || "",
+      region: m["4. region"] || m.region || "",
+    }));
+
+    // Cache results
+    searchCache.set(cacheKey, { expires: Date.now() + SEARCH_TTL_MS, data: matches });
+
+    return res.json({ matches });
+  } catch (err) {
+    console.error("Error searching symbols via Alpha Vantage:", err);
+    // Return cached if possible
+    if (cached && cached.data) return res.json({ matches: cached.data });
+    return res.status(500).json({ error: "Failed to search symbols" });
+  }
+}
+
 module.exports = {
   getWatchlist,
   addToWatchlist,
   deleteWatchlistItem,
   getStockData,
+  searchSymbols,
 };
