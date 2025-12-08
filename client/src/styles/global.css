@@ -114,9 +114,10 @@ main {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 0.75rem;
-  padding: 2rem;
+  padding: 1.5rem;
   display: grid;
-  gap: 1.5rem;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
 }
 
 .search-wrapper {
@@ -127,7 +128,7 @@ main {
 .search-wrapper label {
   font-weight: 600;
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .timeline-wrapper {
@@ -138,7 +139,48 @@ main {
 .timeline-wrapper label {
   font-weight: 600;
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
+}
+
+.quick-stocks {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.quick-stocks label {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.quick-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.quick-btn {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.quick-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.quick-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
 }
 
 /* Chart and Data Section */

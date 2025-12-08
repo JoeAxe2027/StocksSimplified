@@ -1,7 +1,7 @@
 // client/src/components/TimelineSelector.jsx
 import React from "react";
 
-const RANGES = ["1D", "1W", "1M", "3M"];
+const RANGES = ["1D", "1W", "1M", "3M", "6M"];
 
 function TimelineSelector({ selectedRange, onChangeRange }) {
   return (
