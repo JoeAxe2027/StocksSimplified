@@ -15,17 +15,17 @@ function SearchBar({ initialSymbol = "AAPL", onSearch }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginTop: "1rem" }}>
-      <label style={{ marginRight: "0.5rem" }}>
-        Ticker:
+    <form onSubmit={handleSubmit} className="search-form">
+      <div className="search-input-group">
         <input
-          style={{ marginLeft: "0.5rem" }}
+          className="search-input"
           type="text"
+          placeholder="Enter stock symbol (e.g., AAPL)"
           value={symbol}
           onChange={(e) => setSymbol(e.target.value)}
         />
-      </label>
-      <button type="submit">Search</button>
+        <button type="submit" className="search-btn">🔍 Search</button>
+      </div>
     </form>
   );
 }

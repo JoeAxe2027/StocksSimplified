@@ -5,16 +5,13 @@ const RANGES = ["1D", "1W", "1M", "3M"];
 
 function TimelineSelector({ selectedRange, onChangeRange }) {
   return (
-    <div style={{ marginTop: "0.75rem" }}>
+    <div className="timeline-selector">
       {RANGES.map((range) => (
         <button
           key={range}
           type="button"
+          className={`timeline-btn ${selectedRange === range ? "active" : ""}`}
           onClick={() => onChangeRange && onChangeRange(range)}
-          style={{
-            marginRight: "0.5rem",
-            fontWeight: selectedRange === range ? "bold" : "normal",
-          }}
         >
           {range}
         </button>
