@@ -28,6 +28,21 @@
   --transition: all 0.2s ease;
 }
 
+/* Dark theme variables - toggled via `data-theme="dark"` on <html> */
+:root[data-theme="dark"] {
+  --bg: #0b1220;
+  --bg-secondary: #071126;
+  --border: #112233;
+  --text: #e6eef8;
+  --text-secondary: #b6c7d9;
+  --text-muted: #8fa3bb;
+  --primary: #60a5fa;
+  --primary-dark: #3b82f6;
+  --primary-light: #1e293b;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.6);
+  --shadow-md: 0 8px 20px rgba(0,0,0,0.6);
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background-color: var(--bg);
