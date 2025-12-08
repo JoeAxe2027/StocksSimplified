@@ -6,6 +6,7 @@ import Navbar from "./components/Navbar.jsx";
 import Home from "./pages/Home.jsx";
 import WatchlistPage from "./pages/WatchlistPage.jsx";
 import { fetchWatchlist } from "./services/watchlistService.js";
+import "./styles/global.css";
 
 function App() {
   const [watchlist, setWatchlist] = useState([]);
@@ -27,7 +28,7 @@ function App() {
   return (
     <Router>
       <Navbar />
-      <main style={{ padding: "2rem" }}>
+      <main>
         <Routes>
           <Route
             path="/"

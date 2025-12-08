@@ -5,6 +5,7 @@ import TimelineSelector from "../components/TimelineSelector.jsx";
 import StockChart from "../components/StockChart.jsx";
 import StockDetails from "../components/StockDetails.jsx";
 import { getStockData } from "../services/stockService.js";
+import "../styles/global.css";
 
 function Home({ watchlist = [] }) {
   const [selectedSymbol, setSelectedSymbol] = useState("AAPL");
@@ -45,44 +46,58 @@ function Home({ watchlist = [] }) {
   }, [selectedSymbol, selectedRange]);
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>StocksSimplified</h1>
-      <p>Temporary Home page we will plug in the real UI later.</p>
-
-      <SearchBar initialSymbol={selectedSymbol} onSearch={handleSearch} />
-
-      <TimelineSelector
-        selectedRange={selectedRange}
-        onChangeRange={handleRangeChange}
-      />
-
-      <div style={{ marginTop: "1rem" }}>
-        {loading && <p>Loading stock data...</p>}
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        {!loading && !error && !stockData && (
-          <>
-            <p>No chart data yet. Search for a stock.</p>
-            <p>Search for a stock to see details.</p>
-          </>
-        )}
-        {!loading && !error && stockData && (
-          <>
-            <StockChart history={stockData.history} />
-            <StockDetails data={stockData} />
-          </>
-        )}
+    <div className="home-container">
+      <div className="page-header">
+        <h1>Stock Market Dashboard</h1>
+        <p>Search and analyze real-time stock data with interactive charts</p>
       </div>
 
-      <h2 style={{ marginTop: "2rem" }}>Debug watchlist data from MongoDB</h2>
-      <pre
-        style={{
-          backgroundColor: "#f5f5f5",
-          padding: "1rem",
-          borderRadius: "4px",
-        }}
-      >
-        {JSON.stringify(watchlist, null, 2)}
-      </pre>
+      <div className="controls-section">
+        <div className="search-wrapper">
+          <label htmlFor="stock-search">Search Stock Symbol</label>
+          <SearchBar initialSymbol={selectedSymbol} onSearch={handleSearch} />
+        </div>
+
+        <div className="timeline-wrapper">
+          <label htmlFor="timeline">Time Period</label>
+          <TimelineSelector
+            selectedRange={selectedRange}
+            onChangeRange={handleRangeChange}
+          />
+        </div>
+      </div>
+
+      {loading && <div className="loading-message">📊 Loading stock data...</div>}
+
+      {error && <div className="error-message">❌ {error}</div>}
+
+      {!loading && !error && !stockData && (
+        <div className="empty-message">
+          <p>💡 No chart data yet.</p>
+          <p>Search for a stock symbol to see live data and analysis</p>
+        </div>
+      )}
+
+      {!loading && !error && stockData && (
+        <>
+          <div className="chart-section">
+            <div className="chart-container">
+              <StockChart history={stockData.history} />
+            </div>
+          </div>
+
+          <div className="data-section">
+            <StockDetails data={stockData} />
+          </div>
+        </>
+      )}
+
+      <div className="debug-section">
+        <h2>Watchlist Data</h2>
+        <div className="debug-content">
+          <pre>{JSON.stringify(watchlist, null, 2)}</pre>
+        </div>
+      </div>
     </div>
   );
 }

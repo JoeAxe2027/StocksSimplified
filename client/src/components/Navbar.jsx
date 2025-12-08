@@ -1,39 +1,35 @@
 import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import "../styles/navbar.css";
 
-export default function Navbar({ current = "home", onNavigate } = {}) {
-  const navigate = (to, e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    if (typeof onNavigate === "function") {
-      onNavigate(to);
-    } else if (typeof window !== "undefined") {
-      window.location.href = to === "home" ? "/" : "/watchlist";
-    }
-  };
+export default function Navbar() {
+  const location = useLocation();
 
   return (
-    <nav className="ls-nav">
-      <div className="brand">StocksSimplified</div>
+    <nav className="navbar">
+      <div className="navbar-container">
+        <Link to="/" className="navbar-brand">
+          StocksSimplified
+        </Link>
 
-      <div className="nav-links">
-        <a
-          className={`nav-link ${current === "home" ? "active" : ""}`}
-          href="/"
-          onClick={(e) => navigate("home", e)}
-        >
-          Home
-        </a>
+        <div className="nav-links">
+          <Link
+            to="/"
+            className={`nav-link ${location.pathname === "/" ? "active" : ""}`}
+          >
+            Home
+          </Link>
+          <Link
+            to="/watchlist"
+            className={`nav-link ${location.pathname === "/watchlist" ? "active" : ""}`}
+          >
+            Watchlist
+          </Link>
+        </div>
 
-        <a
-          className={`nav-link ${current === "watchlist" ? "active" : ""}`}
-          href="/watchlist"
-          onClick={(e) => navigate("watchlist", e)}
-        >
-          Watchlist
-        </a>
-      </div>
-
-      <div className="nav-actions">
-        <button className="btn">Sign In</button>
+        <div className="nav-actions">
+          <button className="sign-in-btn">Sign In(TBD)</button>
+        </div>
       </div>
     </nav>
   );
