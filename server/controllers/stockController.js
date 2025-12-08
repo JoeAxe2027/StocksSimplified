@@ -1,6 +1,11 @@
 // server/controllers/stockController.js
 const SavedStock = require("../models/SavedStock");
 
+// Simple in-memory cache to reduce Alpha Vantage calls and avoid rate limits.
+// Keyed by `${symbol}:${range}` -> { expires: number, data: object }
+const cache = new Map();
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
 // ---------------- WATCHLIST (MongoDB) ----------------
 
 // GET /api/stocks/watchlist?userId=demo
@@ -112,6 +117,15 @@ async function getStockData(req, res) {
   const symbol = symbolRaw.toUpperCase();
   const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 
+  const cacheKey = `${symbol}:${range}`;
+  const now = Date.now();
+
+  // Return cached fresh data if available
+  const cached = cache.get(cacheKey);
+  if (cached && cached.expires > now) {
+    return res.json(cached.data);
+  }
+
   if (!apiKey) {
     console.error("ALPHA_VANTAGE_API_KEY is not set in .env");
     return res.status(500).json({ error: "Stock API key not configured" });
@@ -130,9 +144,22 @@ async function getStockData(req, res) {
 
     const json = await response.json();
 
-    // Handle Alpha Vantage error / info messages
-    if (json["Error Message"] || json["Information"] || json["Note"]) {
-      console.error("Unexpected Alpha Vantage response:", json);
+    // Handle Alpha Vantage informational messages (rate-limits etc.)
+    if (json["Information"] || json["Note"]) {
+      console.error("Alpha Vantage information/note:", json);
+      // If we have stale cached data, return it as a fallback to avoid a hard failure
+      if (cached && cached.data) {
+        return res.json(cached.data);
+      }
+
+      return res
+        .status(502)
+        .json({ error: "Upstream stock provider returned an informational message" });
+    }
+
+    if (json["Error Message"]) {
+      console.error("Alpha Vantage error message:", json);
+      // Don't fall back to stale data for explicit errors about the symbol
       return res
         .status(502)
         .json({ error: "Upstream stock provider returned an error" });
@@ -179,7 +206,7 @@ async function getStockData(req, res) {
     const low = Math.min(...lows);
     const changePercent = ((price - open) / open) * 100;
 
-    return res.json({
+    const responseData = {
       symbol,
       price,
       open,
@@ -187,7 +214,16 @@ async function getStockData(req, res) {
       low,
       changePercent,
       history, // React chart uses history[].close
-    });
+    };
+
+    // Cache the successful response
+    try {
+      cache.set(cacheKey, { expires: now + CACHE_TTL_MS, data: responseData });
+    } catch (cacheErr) {
+      console.warn("Failed to write to in-memory cache:", cacheErr);
+    }
+
+    return res.json(responseData);
   } catch (err) {
     console.error("Error fetching stock data from Alpha Vantage:", err);
     return res.status(500).json({ error: "Failed to load stock data" });
