@@ -48,8 +48,8 @@ function Home({ watchlist = [] }) {
   return (
     <div className="home-container">
       <div className="page-header">
-        <h1>Stock Market Dashboard</h1>
-        <p>Search and analyze real-time stock data with interactive charts</p>
+        <h1>Dashboard</h1>
+        <p>Search and analyze stock data with interactive charts</p>
       </div>
 
       <div className="controls-section">
