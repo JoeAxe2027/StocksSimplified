@@ -1,4 +1,4 @@
-﻿# StocksSimplified
+# StocksSimplified
 
 SearchBar.jsx → handles stock lookup input
 
@@ -45,5 +45,8 @@ Images, icons, logos, chart background images
 
 
 
-
+Frontend (React) - Evan, Connor
+Backend (Node/Express) - Joey
+Database (MongoDB) - Cole Taddei
+Presentation/Documentation - Everyone
 https://youtu.be/m9dRkPLn21c
