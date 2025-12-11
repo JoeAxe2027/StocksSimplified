@@ -13,7 +13,7 @@ export default function Navbar() {
   });
 
   useEffect(() => {
-    // initialize theme: localStorage -> system preference -> light
+    
     let t = theme;
     if (!t) {
       const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;

@@ -2,11 +2,11 @@
 const SavedStock = require("../models/SavedStock");
 
 // Simple in-memory cache for symbol search results to reduce Alpha Vantage calls
-const searchCache = new Map(); // key -> { expires: number, data: [...] }
+const searchCache = new Map(); 
 const SEARCH_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 // Cache for stock data to prevent throttling
-const stockDataCache = new Map(); // key: "SYMBOL:RANGE" -> { expires: number, data: {...} }
+const stockDataCache = new Map(); 
 const STOCK_DATA_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours - stay under 25 req/day limit
 
 // ---------------- WATCHLIST (MongoDB) ----------------
@@ -51,7 +51,7 @@ async function addToWatchlist(req, res) {
     return res.status(201).json(doc);
   } catch (err) {
     if (err && err.code === 11000) {
-      // Unique index on userId+symbol
+      
       return res
         .status(409)
         .json({ error: "This symbol is already saved for this user" });
@@ -91,8 +91,7 @@ async function deleteWatchlistItem(req, res) {
 
 // ---------------- STOCK DATA (Alpha Vantage) ----------------
 
-// Helper: how many trading days for each range
-// Note: compact mode only returns ~100 days, so all ranges cap at 100
+
 function daysForRange(range) {
   switch (range) {
     case "1D":
@@ -104,7 +103,7 @@ function daysForRange(range) {
     case "3M":
       return 66;     // ~3 months of trading days
     case "6M":
-      return 100;    // Compact mode max
+      return 100;    
     default:
       return 22;
   }
@@ -266,7 +265,7 @@ async function searchSymbols(req, res) {
 
     const json = await response.json();
 
-    // Handle rate-limit / info responses gracefully
+    // Handle rate limit / info responses gracefully
     if (json["Note"] || json["Information"]) {
       console.warn("Alpha Vantage search returned info/note:", json);
       // Return cached if available (even expired) or an empty list
@@ -295,7 +294,7 @@ async function searchSymbols(req, res) {
   }
 }
 
-// GET /api/stocks/batch?symbols=AAPL,MSFT,GOOGL&range=1M
+
 // Fetch multiple symbols in parallel using cache to minimize API calls
 async function batchGetStockData(req, res) {
   const symbolsRaw = (req.query.symbols || "").split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);

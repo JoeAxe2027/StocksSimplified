@@ -7,7 +7,7 @@ const DEMO_USER = "demo";
 function WatchlistPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dataMap, setDataMap] = useState({}); // symbol -> stock data
+  const [dataMap, setDataMap] = useState({}); 
 
   useEffect(() => {
     loadWatchlist();

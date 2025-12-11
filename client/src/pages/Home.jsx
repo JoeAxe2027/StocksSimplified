@@ -84,7 +84,7 @@ function Home({ watchlist = [] }) {
 
       {loading && <div className="loading-message">📊 Loading stock data...</div>}
 
-      {error && <div className="error-message">❌ {error}</div>}
+      {error && <div className="error-message"> {error}</div>}
 
       {!loading && !error && !stockData && (
         <div className="empty-message">

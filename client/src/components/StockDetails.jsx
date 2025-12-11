@@ -9,7 +9,7 @@ function StockDetails({ data }) {
   const [message, setMessage] = useState("");
   const [added, setAdded] = useState(false);
 
-  // NEW: safety guard
+  
   if (
     !data ||
     typeof data.price !== "number" ||

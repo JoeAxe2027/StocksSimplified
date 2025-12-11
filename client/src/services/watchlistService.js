@@ -56,13 +56,13 @@ export const removeWatchlistItem = _remove;
 export const deleteWatchlistItem = _remove;
 
 
-// Optional: placeholder for future edit support so existing imports don't break
+
 export async function updateWatchlistItem(id, updates) {
     console.warn("updateWatchlistItem called, but not implemented.", {
       id,
       updates,
     });
-    // No-op for now – we don't have a PUT route on the server.
+    
     return null;
   }
   

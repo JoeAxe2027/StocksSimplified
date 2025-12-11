@@ -2,7 +2,7 @@
 import axios from "axios";
 import { API_BASE_URL } from "./api";
 
-// GET /api/stocks/data?symbol=...&range=...
+
 // Returns mock data from our Node controller.
 export async function getStockData(symbol, range = "1M") {
   const trimmed = (symbol || "").trim().toUpperCase();
