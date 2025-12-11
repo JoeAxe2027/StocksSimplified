@@ -107,7 +107,6 @@ function SearchBar({ initialSymbol = "AAPL", onSearch }) {
   };
 
   const selectSuggestion = (s) => {
-    // s may be {symbol,name} or a string
     const sym = typeof s === "string" ? s.split("-")[0].trim() : s.symbol;
     setSymbol(sym);
     setOpen(false);
